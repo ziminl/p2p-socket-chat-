@@ -1,0 +1,74 @@
+
+
+
+
+
+
+import socket
+import threading
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTextEdit, QLineEdit, QPushButton
+
+class ChatWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("p2p chat")
+        self.message_history = QTextEdit()
+        self.message_input = QLineEdit()
+        self.send_button = QPushButton("send")
+        self.send_button.clicked.connect(self.send_message)
+        layout = QVBoxLayout()
+        layout.addWidget(self.message_history)
+        layout.addWidget(self.message_input)
+        layout.addWidget(self.send_button)
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+        self.host = 'localhost'
+        self.port = 9999  
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.host, self.port))
+        print("connected.")
+        self.receive_thread = threading.Thread(target=self.receive_messages)
+        self.receive_thread.start()
+        self.load_previous_messages()
+    def receive_messages(self):
+        while True:
+            try:
+                data = self.sock.recv(1024).decode('utf-8')
+                self.message_history.append(data)
+                # Save received message to file
+                self.save_message_to_file(data)
+            except OSError:
+                break
+    def send_message(self):
+        message = self.message_input.text()
+        self.sock.send(message.encode('utf-8'))
+        self.message_input.clear()
+    def load_previous_messages(self):
+        try:
+            with open('chat_history.txt', 'r', encoding='utf-8') as file:
+                chat_history = file.read()
+                self.message_history.append(chat_history)
+        except FileNotFoundError:
+            pass
+    def save_message_to_file(self, message):
+        with open('chat_history.txt', 'a', encoding='utf-8') as file:
+            file.write(message + '\n')
+            
+def run_chat_app():
+    app = QApplication([])
+    window = ChatWindow()
+    window.show()
+    app.exec_()
+
+if __name__ == '__main__':
+    run_chat_app()
+    
+    
+    
+    
+    
+    
+    
+    
+    
